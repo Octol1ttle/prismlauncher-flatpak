@@ -20,9 +20,11 @@ permissions: {}
 jobs:
   build:
     name: Build Flatpaks
-    uses: ./.github/workflows/build.yml
     permissions:
       contents: read
+    uses: ./.github/workflows/build.yml
+    with:
+      cache-repository: true
 
   upload:
     name: Upload repository

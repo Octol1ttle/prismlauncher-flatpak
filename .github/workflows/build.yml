@@ -16,7 +16,18 @@ on:
       # Workflows
       - ".github/workflows/build.yml"
   workflow_call:
+    inputs:
+      # NOTE: This is a workaround for https://github.com/actions/runner/issues/3146
+      cache-repository:
+        type: boolean
+        description: Whether to cache the repository created by Flatpak builds
+        default: false
   workflow_dispatch:
+    inputs:
+      cache-repository:
+        type: boolean
+        description: Whether to cache the repository created by Flatpak builds
+        default: false
 
 permissions: {}
 
@@ -32,8 +43,7 @@ jobs:
       # WARN(@getchoo): DON'T REMOVE THIS!
       # We share and incrementally update a repository with each subsequent build
       # Having builds run in parallel would overwrite the repository with only one build
-      # TODO: Figure out how to not limit this when we aren't worried about the repository (i.e., PRs)
-      max-parallel: 1
+      max-parallel: ${{ (inputs.cache-repository || false) && 1 || 99 }}
       matrix:
         include:
           - os: ubuntu-24.04
@@ -69,14 +79,14 @@ jobs:
           echo "VERSION=${UPSTREAM_SHA::7}" >> "$GITHUB_ENV"
 
       - name: Get Date
-        if: ${{ github.event_name == 'workflow_call' }}
+        if: ${{ inputs.cache-repository }}
         id: get-date
         shell: bash
         run: |
           echo "date=$(/bin/date -u '+%Y%m%d')" >> "$GITHUB_OUTPUT"
 
       - name: Restore local repository
-        if: ${{ github.event_name == 'workflow_call' }}
+        if: ${{ inputs.cache-repository }}
         id: restore-repository
         uses: actions/cache/restore@v5
         with:
@@ -92,13 +102,13 @@ jobs:
           bundle: PrismLauncher-${{ env.VERSION }}-${{ matrix.arch }}.flatpak
 
       - name: Update and prune repository
-        if: ${{ github.event_name == 'workflow_call' }}
+        if: ${{ inputs.cache-repository }}
         shell: bash
         run: |
           flatpak build-update-repo --generate-static-deltas --prune repo/
 
       - name: Cache local repository
-        if: ${{ github.event_name == 'workflow_call' }}
+        if: ${{ inputs.cache-repository }}
         uses: actions/cache/save@v5
         with:
           path: repo/
