@@ -48,6 +48,7 @@ jobs:
         with:
           path: ${{ needs.build.outputs.repository-directory }}
           key: ${{ needs.build.outputs.repository-cache-key }}
+          fail-on-cache-miss: true
 
       - name: Upload repository as artifact
         uses: actions/upload-pages-artifact@v4
